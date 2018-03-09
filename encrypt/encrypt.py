@@ -4,10 +4,11 @@ import random
 IV_BYTES = 16
 
 def generate_iv() -> str:
-    return ''.join(
-        random.choices(
-            string.ascii_lowercase + string.digits,
-            k=IV_BYTES))
+    iv = ''.join(random.choices(
+        string.ascii_lowercase + string.digits,
+        k=IV_BYTES))
+    print("Generated IV: {}".format(iv))
+    return iv
 
 def my_encrypt(message: str, key: str, **kwargs) -> tuple:
     """
@@ -53,7 +54,7 @@ def my_file_decrypt(filepath: str) -> tuple:
     return plaintext, iv, key, ext
 
 def main():
-    print("Hello")
+    my_encrypt("toto", "toto")
     pass
 
 if __name__ == "__main__":
