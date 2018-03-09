@@ -1,4 +1,5 @@
 import string
+import random
 
 IV_BYTES = 16
 
@@ -52,6 +53,7 @@ def my_file_decrypt(filepath: str) -> tuple:
     return plaintext, iv, key, ext
 
 def main():
+    print("Hello")
     pass
 
 if __name__ == "__main__":
