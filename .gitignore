@@ -262,3 +262,5 @@ __pycache__/
 /encrypt/venv
 *.pyproj
 *.sln
+.vscode/.ropeproject/config.py
+.vscode/.ropeproject/objectdb

@@ -1,36 +1,54 @@
-import string
-import random
+import os
 
-IV_BYTES = 16
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import padding
 
-def generate_iv() -> str:
-    iv = ''.join(random.choices(
-        string.ascii_lowercase + string.digits,
-        k=IV_BYTES))
-    print("Generated IV: {}".format(iv))
-    return iv
+BLOCK_SIZE = 16
+IV_SIZE = BLOCK_SIZE
 
-def my_encrypt(message: str, key: str, **kwargs) -> tuple:
+def to_bit(byte_size: int) -> int:
+    return byte_size * 8
+
+def generate_iv() -> bytes:
+    return os.urandom(IV_SIZE)
+
+def generate_key() -> bytes:
+    return os.urandom(BLOCK_SIZE * 2)
+
+def my_encrypt(message: bytes, key: bytes, **kwargs) -> tuple:
     """
-    Encrypt a string of ascii text using a 32B key and
-    a 16B initialisation vector IV
+    Encrypt bytes using a 32B key and a 16B initialisation vector IV
     If the IV is not provided, one will be generated
     args:
         message: str
         key: str
     kwargs:
-        iv: str
+        iv: bytes
     return: (ciphertext:str, IV: str)
     """
-    iv = kwargs.get("iv", generate_iv())
-    ## TODO
-    ciphertext = ""
+    iv = generate_iv()
+    encrypt = Cipher(
+        algorithm=algorithms.AES(key),
+        mode=modes.CBC(iv),
+        backend=default_backend()).encryptor()
+    ciphertext = encrypt.update(message) + encrypt.finalize()
     return ciphertext, iv
 
-def my_decrypt(ciphertext, key, init_v) -> tuple:
-    ## TODO
-    plaintext = ""
-    return plaintext, init_v
+def my_decrypt(ciphertext, key, iv) -> tuple:
+    """
+    Decrypt a ciphertext
+    args:
+        ciphertext: bytes
+        key: bytes
+        iv: bytes
+    """
+    decrypt = Cipher(
+        algorithm=algorithms.AES(key),
+        mode=modes.CBC(iv),
+        backend=default_backend()).decryptor()
+    plaintext = decrypt.update(ciphertext) + decrypt.finalize()
+    return plaintext, iv
 
 def my_file_encrypt(filepath: str) -> tuple:
     """
@@ -38,11 +56,16 @@ def my_file_encrypt(filepath: str) -> tuple:
     args:
         filepath: str
     """
-    ## TODO
-    ciphertext = ""
-    iv = ""
-    key = ""
-    ext = ""
+    key = os.urandom(BLOCK_SIZE * 2)
+    ext = os.path.splitext(filepath)[1]
+    print(os.getcwd())
+    with open(filepath, 'rb') as binary:
+        data = binary.read()
+    if len(data) % BLOCK_SIZE:
+        padder = padding.PKCS7(to_bit(BLOCK_SIZE)).padder()
+        padded_data = padder.update(data) + padder.finalize()
+        data = padded_data
+    ciphertext, iv = my_encrypt(data, key)
     return ciphertext, iv, key, ext
 
 def my_file_decrypt(filepath: str) -> tuple:
@@ -54,7 +77,7 @@ def my_file_decrypt(filepath: str) -> tuple:
     return plaintext, iv, key, ext
 
 def main():
-    my_encrypt("toto", "toto")
+    ciphertext, iv, key, ext = my_file_encrypt('encrypt/data/article.txt')
     pass
 
 if __name__ == "__main__":
