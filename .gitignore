@@ -264,3 +264,5 @@ __pycache__/
 *.sln
 .vscode/.ropeproject/config.py
 .vscode/.ropeproject/objectdb
+encrypt/data/
+!encrypt/data/article.txt

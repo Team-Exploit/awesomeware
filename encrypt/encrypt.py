@@ -1,4 +1,6 @@
 import os
+import json
+from base64 import b64encode, b64decode
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
@@ -6,6 +8,9 @@ from cryptography.hazmat.primitives import padding
 
 BLOCK_SIZE = 16
 IV_SIZE = BLOCK_SIZE
+
+def bytes_to_str(data: bytes) -> str:
+    return b64encode(data).decode('utf-8')
 
 def to_bit(byte_size: int) -> int:
     return byte_size * 8
@@ -58,7 +63,6 @@ def my_file_encrypt(filepath: str) -> tuple:
     """
     key = os.urandom(BLOCK_SIZE * 2)
     ext = os.path.splitext(filepath)[1]
-    print(os.getcwd())
     with open(filepath, 'rb') as binary:
         data = binary.read()
     if len(data) % BLOCK_SIZE:
@@ -78,6 +82,16 @@ def my_file_decrypt(filepath: str) -> tuple:
 
 def main():
     ciphertext, iv, key, ext = my_file_encrypt('encrypt/data/article.txt')
+    data = {
+        'iv':  bytes_to_str(iv),
+        'key': bytes_to_str(key),
+        'ext': ext
+    }
+    with open('encrypt/data/encrypted.txt', 'wb') as secret_data:
+        secret_data.write(ciphertext)
+    with open('encrypt/data/data.json', 'w') as json_file:
+        json.dump(data, json_file)
+    print("Encryption done")
     pass
 
 if __name__ == "__main__":
