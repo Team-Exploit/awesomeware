@@ -10,18 +10,22 @@ from cryptography.hazmat.primitives import padding
 
 BLOCK_SIZE = 16
 IV_SIZE = BLOCK_SIZE
+KEY_SIZE = BLOCK_SIZE * 2
 
 def bytes_to_str(data: bytes) -> str:
     return b64encode(data).decode('utf-8')
 
-def to_bit(byte_size: int) -> int:
+def str_to_bytes(data: str) -> bytes:
+    return b64decode(data.encode('utf-8'))
+
+def to_bits(byte_size: int) -> int:
     return byte_size * 8
 
 def generate_iv() -> bytes:
     return os.urandom(IV_SIZE)
 
 def generate_key() -> bytes:
-    return os.urandom(BLOCK_SIZE * 2)
+    return os.urandom(KEY_SIZE)
 
 def my_encrypt(message: bytes, key: bytes, **kwargs) -> tuple:
     """
@@ -68,7 +72,7 @@ def my_file_encrypt(filepath: str) -> tuple:
     with open(filepath, 'rb') as binary:
         data = binary.read()
     if len(data) % BLOCK_SIZE:
-        padder = padding.PKCS7(to_bit(BLOCK_SIZE)).padder()
+        padder = padding.PKCS7(to_bits(BLOCK_SIZE)).padder()
         padded_data = padder.update(data) + padder.finalize()
         data = padded_data
     ciphertext, iv = my_encrypt(data, key)
@@ -78,10 +82,9 @@ def my_file_decrypt(filepath: str, key: bytes, iv: bytes) -> tuple:
     with open(filepath, 'rb') as binary:
         data = binary.read()
     plaintext = my_decrypt(data, key, iv)
-    unpadder = padding.PKCS7(to_bit(BLOCK_SIZE)).unpadder()
+    unpadder = padding.PKCS7(to_bits(BLOCK_SIZE)).unpadder()
     unpadded_plaintext = unpadder.update(plaintext) + unpadder.finalize()
-    plaintext = unpadded_plaintext
-    return plaintext
+    return unpadded_plaintext
 
 def main():
     if len(sys.argv) > 1:
@@ -103,9 +106,10 @@ def main():
     with open('data/data.json', 'r') as json_file:
         json_raw = json_file.read()
         json_data = json.loads(json_raw)
+    assert 'iv' in json_data and 'key' in json_data and 'ext' in json_data
     data2 = {
-        'iv': b64decode(json_data['iv'].encode('utf-8')),
-        'key': b64decode(json_data['key'].encode('utf-8')),
+        'iv': str_to_bytes(json_data['iv']),
+        'key': str_to_bytes(json_data['key']),
         'ext': json_data['ext']
     }
     plaintext = my_file_decrypt('data/encrypted', data2['key'], data2['iv'])
