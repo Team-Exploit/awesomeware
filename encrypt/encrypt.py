@@ -67,7 +67,7 @@ def my_file_encrypt(filepath: str) -> tuple:
     args:
         filepath: str
     """
-    key = os.urandom(BLOCK_SIZE * 2)
+    key = generate_key()
     ext = os.path.splitext(filepath)[1]
     with open(filepath, 'rb') as binary:
         data = binary.read()

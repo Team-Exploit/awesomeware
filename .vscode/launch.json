@@ -12,12 +12,13 @@
             "stopOnEntry": true,
             "pythonPath": "${config:python.pythonPath}",
             "program": "${file}",
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/encrypt",
             "env": {},
             "envFile": "${workspaceFolder}/.env",
             "debugOptions": [
                 "RedirectOutput"
-            ]
+            ],
+            "args": ["data/tomb.jpg"]
         },
         {
             "name": "Python: Attach",
@@ -41,7 +42,7 @@
             "env": {},
             "envFile": "${workspaceFolder}/.env",
             "debugOptions": [],
-            "internalConsoleOptions": "neverOpen"
+            "internalConsoleOptions": "neverOpen",
         },
         {
             "name": "Python: Terminal (external)",
