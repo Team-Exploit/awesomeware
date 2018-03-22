@@ -6,11 +6,15 @@ from base64 import b64encode, b64decode
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives import padding, serialization, asymmetric, hashes
+from cryptography.hazmat.primitives.asymmetric import padding as rsa_padding
 
 BLOCK_SIZE = 16
 IV_SIZE = BLOCK_SIZE
 KEY_SIZE = BLOCK_SIZE * 2
+
+RSA_PUBLICKEY_FILEPATH = "../rsa/pubkey.pem"
+RSA_PRIVATEKEY_FILEPATH = "../rsa/mykey.pem"
 
 def bytes_to_str(data: bytes) -> str:
     return b64encode(data).decode('utf-8')
@@ -86,16 +90,59 @@ def my_file_decrypt(filepath: str, key: bytes, iv: bytes) -> tuple:
     unpadded_plaintext = unpadder.update(plaintext) + unpadder.finalize()
     return unpadded_plaintext
 
+def my_rsa_encrypt(filepath: str) -> tuple:
+    """
+    In this method,
+    you first call MyfileEncrypt(filepath) which will return (C, IV, key, ext).
+    You then will initialize an RSA public key encryption object
+    and load pem publickey from the RSA_publickey_filepath.
+    Lastly, you encrypt the key variable ("key") using the RSA publickey in OAEP padding mode.
+    The result will be RSACipher.
+    You then return (RSACipher, C, IV, ext). 
+    """
+    ciphertext, iv, key, ext = my_file_encrypt(filepath)
+    with open(RSA_PUBLICKEY_FILEPATH, 'rb') as pem_file:
+        public_key = serialization.load_pem_public_key(
+            pem_file.read(),
+            backend=default_backend())
+    rsa_cipher = public_key.encrypt(
+        key,
+        rsa_padding.OAEP(
+            mgf=rsa_padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None))
+    return (rsa_cipher, ciphertext, iv, ext)
+
+def my_rsa_decrypt(rsa_cipher, ciphertext, iv, ext: str, rsa_privatekey_filepath: str) -> tuple:
+    """
+    Remember to do the inverse
+    MyRSADecrypt (RSACipher, C, IV, ext, RSA_Privatekey_filepath)
+    which does the exactly inverse of the above
+    and generate the decrypted file using your previous decryption methods.
+    """
+    with open(rsa_privatekey_filepath, 'rb') as pem_file:
+        private_key = serialization.load_pem_private_key(
+            pem_file.read(),
+            password=None,
+            backend=default_backend())
+    key = private_key.decrypt(
+        rsa_cipher,
+        rsa_padding.OAEP(
+            mgf=rsa_padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None))
+    return my_file_decrypt(ciphertext, key, iv)
+
 def main():
     if len(sys.argv) > 1:
         my_file = sys.argv[1]
     else:
         print('Usage: $> python encrypt.py <file>')
         return
-    ciphertext, iv, key, ext = my_file_encrypt(my_file)
+    rsa_cipher, ciphertext, iv, ext = my_rsa_encrypt(my_file)
     data = {
         'iv':  bytes_to_str(iv),
-        'key': bytes_to_str(key),
+        'rsa_cipher': bytes_to_str(rsa_cipher),
         'ext': ext
     }
     with open('data/encrypted', 'wb') as secret_data:
@@ -103,16 +150,22 @@ def main():
     with open('data/data.json', 'w') as json_file:
         json.dump(data, json_file)
     print("Encryption done")    
+
     with open('data/data.json', 'r') as json_file:
         json_raw = json_file.read()
         json_data = json.loads(json_raw)
-    assert 'iv' in json_data and 'key' in json_data and 'ext' in json_data
+    assert 'iv' in json_data and 'rsa_cipher' in json_data and 'ext' in json_data
     data2 = {
         'iv': str_to_bytes(json_data['iv']),
-        'key': str_to_bytes(json_data['key']),
+        'rsa_cipher': str_to_bytes(json_data['rsa_cipher']),
         'ext': json_data['ext']
     }
-    plaintext = my_file_decrypt('data/encrypted', data2['key'], data2['iv'])
+    plaintext = my_rsa_decrypt(
+        data2['rsa_cipher'],
+        'data/encrypted',
+        data2['iv'],
+        data2['ext'],
+        RSA_PRIVATEKEY_FILEPATH)
     with open('data/decryted{}'.format(data2['ext']), 'wb') as not_so_secret_data:
         not_so_secret_data.write(plaintext)
     print("Decryption done")

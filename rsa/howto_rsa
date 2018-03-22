@@ -1,0 +1,10 @@
+## The following command generate a .pem file
+## containing a private key and a public certificate
+## The lenght should not the inferior to 2048
+
+openssl genrsa -out mykey.pem 4096
+
+## The following command will extract the public key
+
+openssl rsa -in mykey.pem -pubout -out pubkey.pem
+
