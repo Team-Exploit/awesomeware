@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import argparse
 
 from base64 import b64encode, b64decode
 
@@ -92,7 +93,6 @@ def my_file_decrypt(filepath: str, key: bytes, iv: bytes) -> tuple:
 
 def my_rsa_encrypt(filepath: str) -> tuple:
     """
-    In this method,
     you first call MyfileEncrypt(filepath) which will return (C, IV, key, ext).
     You then will initialize an RSA public key encryption object
     and load pem publickey from the RSA_publickey_filepath.
@@ -115,8 +115,6 @@ def my_rsa_encrypt(filepath: str) -> tuple:
 
 def my_rsa_decrypt(rsa_cipher, ciphertext, iv, ext: str, rsa_privatekey_filepath: str) -> tuple:
     """
-    Remember to do the inverse
-    MyRSADecrypt (RSACipher, C, IV, ext, RSA_Privatekey_filepath)
     which does the exactly inverse of the above
     and generate the decrypted file using your previous decryption methods.
     """
@@ -133,42 +131,78 @@ def my_rsa_decrypt(rsa_cipher, ciphertext, iv, ext: str, rsa_privatekey_filepath
             label=None))
     return my_file_decrypt(ciphertext, key, iv)
 
-def main():
-    if len(sys.argv) > 1:
-        my_file = sys.argv[1]
-    else:
-        print('Usage: $> python encrypt.py <file>')
-        return
-    rsa_cipher, ciphertext, iv, ext = my_rsa_encrypt(my_file)
+def encrypt(input_path: str, output_path: str, json_path: str, is_folder: bool):
+    rsa_cipher, ciphertext, iv, ext = my_rsa_encrypt(input_path)
     data = {
         'iv':  bytes_to_str(iv),
         'rsa_cipher': bytes_to_str(rsa_cipher),
         'ext': ext
     }
-    with open('data/encrypted', 'wb') as secret_data:
-        secret_data.write(ciphertext)
-    with open('data/data.json', 'w') as json_file:
-        json.dump(data, json_file)
-    print("Encryption done")    
+    with open(output_path, 'wb') as output_fh:
+        output_fh.write(ciphertext)
+    with open(json_path, 'w') as json_fh:
+        json.dump(data, json_fh)
 
-    with open('data/data.json', 'r') as json_file:
-        json_raw = json_file.read()
+def decrypt(input_path: str, output_path: str, json_path:str, is_folder: bool):
+    with open(json_path, 'r') as json_fh:
+        json_raw = json_fh.read()
         json_data = json.loads(json_raw)
     assert 'iv' in json_data and 'rsa_cipher' in json_data and 'ext' in json_data
-    data2 = {
+    data = {
         'iv': str_to_bytes(json_data['iv']),
         'rsa_cipher': str_to_bytes(json_data['rsa_cipher']),
         'ext': json_data['ext']
     }
     plaintext = my_rsa_decrypt(
-        data2['rsa_cipher'],
-        'data/encrypted',
-        data2['iv'],
-        data2['ext'],
+        data['rsa_cipher'],
+        input_path,
+        data['iv'],
+        data['ext'],
         RSA_PRIVATEKEY_FILEPATH)
-    with open('data/decryted{}'.format(data2['ext']), 'wb') as not_so_secret_data:
-        not_so_secret_data.write(plaintext)
-    print("Decryption done")
+    with open('{}{}'.format(output_path, data['ext']), 'wb') as output_fh:
+        output_fh.write(plaintext)
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="encrypt.py",
+        description="Peform encryption/decryption operations")
+    ## args.input
+    parser.add_argument(
+        'input',
+        type=str,
+        help='Input file')
+    ## args.decrypt
+    parser.add_argument(
+        '-d', '--decrypt',
+        action='store_true',
+        help="Set the program in decryption mode")
+    ## args.output
+    parser.add_argument(
+        '-o', '--out', '--output',
+        type=str,
+        action='store',
+        metavar="output_file",
+        default="output",
+        dest="output",
+        help="Spectify the name of the output file")
+    ## args.json
+    parser.add_argument(
+        '-j', '--json',
+        type=str,
+        action='store',
+        metavar="json_file",
+        default="data.json",
+        help="Specify the json file to read/write encryption data")
+    ## args.folder
+    parser.add_argument(
+        '-F', '--folder',
+        action='store_true',
+        help="Specify that the target is a folder")
+    args = parser.parse_args(sys.argv[1:])
+    if args.decrypt:
+        decrypt(args.input, args.output, args.json, args.folder)
+    else:
+        encrypt(args.input, args.output, args.json, args.folder)
 
 if __name__ == "__main__":
     main()

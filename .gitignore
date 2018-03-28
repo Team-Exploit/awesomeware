@@ -266,3 +266,5 @@ __pycache__/
 .vscode/.ropeproject/objectdb
 encrypt/data/
 !encrypt/data/article.txt
+encrypt/*.json
+encrypt/output*
