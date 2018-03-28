@@ -61,7 +61,7 @@ def my_rsa_decrypt(rsa_cipher, ciphertext, iv, ext: str, rsa_privatekey_filepath
             label=None))
     return my_file_decrypt(ciphertext, key, iv)
 
-def my_decrypt(input_path: str, output_path: str, json_path:str, is_folder: bool):
+def my_decrypt(input_path: str, output_path: str, json_path: str, is_folder: bool):
     with open(json_path, 'r') as json_fh:
         json_raw = json_fh.read()
         json_data = json.loads(json_raw)

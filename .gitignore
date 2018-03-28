@@ -268,3 +268,4 @@ encrypt/data/
 !encrypt/data/article.txt
 encrypt/*.json
 encrypt/output*
+.vscode/
