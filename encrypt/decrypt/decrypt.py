@@ -5,7 +5,7 @@ from base64 import b64decode
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import padding, serialization, asymmetric, hashes
+from cryptography.hazmat.primitives import padding, serialization, asymmetric, hashes, hmac
 from cryptography.hazmat.primitives.asymmetric import padding as rsa_padding
 
 BLOCK_SIZE = 16
@@ -35,6 +35,7 @@ def my_aes_decrypt(ciphertext: bytes, key: bytes, iv: bytes) -> tuple:
     plaintext = decrypt.update(ciphertext) + decrypt.finalize()
     return plaintext
 
+
 def my_file_decrypt(filepath: str, key: bytes, iv: bytes) -> tuple:
     with open(filepath, 'rb') as binary:
         data = binary.read()
@@ -43,23 +44,59 @@ def my_file_decrypt(filepath: str, key: bytes, iv: bytes) -> tuple:
     unpadded_plaintext = unpadder.update(plaintext) + unpadder.finalize()
     return unpadded_plaintext
 
-def my_rsa_decrypt(rsa_cipher, ciphertext, iv, ext: str, rsa_privatekey_filepath: str) -> tuple:
-    """
-    which does the exactly inverse of the above
-    and generate the decrypted file using your previous decryption methods.
-    """
-    with open(rsa_privatekey_filepath, 'rb') as pem_file:
+# def my_rsa_decrypt(rsa_cipher, ciphertext, iv, ext: str, rsa_privatekey_filepath: str) -> tuple:
+#     with open(rsa_privatekey_filepath, 'rb') as pem_file:
+#         private_key = serialization.load_pem_private_key(
+#             pem_file.read(),
+#             password=None,
+#             backend=default_backend())
+#     key = private_key.decrypt(
+#         rsa_cipher,
+#         rsa_padding.OAEP(
+#             mgf=rsa_padding.MGF1(algorithm=hashes.SHA256()),
+#             algorithm=hashes.SHA256(),
+#             label=None))
+#     return my_file_decrypt(ciphertext, key, iv)
+
+def rsa_privkey_decrypt(rsa_cipher: bytes, rsa_privkey_filepath: str = RSA_PRIVATEKEY_FILEPATH) -> bytes:
+    with open(rsa_privkey_filepath, 'rb') as pem_file:
         private_key = serialization.load_pem_private_key(
             pem_file.read(),
             password=None,
             backend=default_backend())
-    key = private_key.decrypt(
+    message = private_key.decrypt(
         rsa_cipher,
         rsa_padding.OAEP(
             mgf=rsa_padding.MGF1(algorithm=hashes.SHA256()),
             algorithm=hashes.SHA256(),
             label=None))
-    return my_file_decrypt(ciphertext, key, iv)
+    return message
+
+def my_decrypt_hmac(ciphertext: bytes, enc_key: bytes, hmac_key: bytes, iv: bytes, tag: bytes) -> tuple:
+    h = hmac.HMAC(hmac_key, hashes.SHA256(), backend=default_backend())
+    h.update(ciphertext)
+    h.verify(tag)
+    decrypt = Cipher(
+        algorithm=algorithms.AES(enc_key),
+        mode=modes.CBC(iv),
+        backend=default_backend()).decryptor()
+    plaintext = decrypt.update(ciphertext) + decrypt.finalize()
+    return plaintext
+
+def my_file_decrypt_mac(filepath: str, enc_key: bytes, hmac_key: bytes, iv: bytes, tag: bytes) -> tuple:
+    with open(filepath, 'rb') as binary:
+        data = binary.read()
+    plaintext = my_decrypt_hmac(data, enc_key, hmac_key, iv, tag)
+    unpadder = padding.PKCS7(to_bits(BLOCK_SIZE)).unpadder()
+    unpadded_plaintext = unpadder.update(plaintext) + unpadder.finalize()
+    return unpadded_plaintext
+    
+def my_rsa_decrypt(rsa_cipher, ciphertext, iv, ext: str, tag: bytes, rsa_privkey_filepath: str) -> tuple:
+    key = rsa_privkey_decrypt(rsa_cipher, rsa_privkey_filepath)
+    enc_key = key[:KEY_SIZE]
+    hmac_key = key[KEY_SIZE:]
+    plaintext = my_file_decrypt_mac(ciphertext, enc_key, hmac_key, iv, tag)
+    return plaintext
 
 def my_decrypt(input_path: str, output_path: str, json_path: str, is_folder: bool):
     with open(json_path, 'r') as json_fh:
@@ -69,13 +106,15 @@ def my_decrypt(input_path: str, output_path: str, json_path: str, is_folder: boo
     data = {
         'iv': str_to_bytes(json_data['iv']),
         'rsa_cipher': str_to_bytes(json_data['rsa_cipher']),
-        'ext': json_data['ext']
+        'ext': json_data['ext'],
+        'tag': str_to_bytes(json_data['tag'])
     }
     plaintext = my_rsa_decrypt(
         data['rsa_cipher'],
         input_path,
         data['iv'],
         data['ext'],
+        data['tag'],
         RSA_PRIVATEKEY_FILEPATH)
     with open('{}{}'.format(output_path, data['ext']), 'wb') as output_fh:
         output_fh.write(plaintext)
