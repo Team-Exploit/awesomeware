@@ -83,38 +83,39 @@ def my_decrypt_hmac(ciphertext: bytes, enc_key: bytes, hmac_key: bytes, iv: byte
     plaintext = decrypt.update(ciphertext) + decrypt.finalize()
     return plaintext
 
-def my_file_decrypt_mac(filepath: str, enc_key: bytes, hmac_key: bytes, iv: bytes, tag: bytes) -> tuple:
-    with open(filepath, 'rb') as binary:
-        data = binary.read()
-    plaintext = my_decrypt_hmac(data, enc_key, hmac_key, iv, tag)
+def my_file_decrypt_mac(ciphertext: bytes, enc_key: bytes, hmac_key: bytes, iv: bytes, tag: bytes) -> tuple:
+    plaintext = my_decrypt_hmac(ciphertext, enc_key, hmac_key, iv, tag)
     unpadder = padding.PKCS7(to_bits(BLOCK_SIZE)).unpadder()
     unpadded_plaintext = unpadder.update(plaintext) + unpadder.finalize()
     return unpadded_plaintext
     
-def my_rsa_decrypt(rsa_cipher, ciphertext, iv, ext: str, tag: bytes, rsa_privkey_filepath: str) -> tuple:
+def my_rsa_decrypt(rsa_cipher, ciphertext: bytes, iv, ext: str, tag: bytes, rsa_privkey_filepath: str) -> tuple:
     key = rsa_privkey_decrypt(rsa_cipher, rsa_privkey_filepath)
     enc_key = key[:KEY_SIZE]
     hmac_key = key[KEY_SIZE:]
     plaintext = my_file_decrypt_mac(ciphertext, enc_key, hmac_key, iv, tag)
     return plaintext
 
-def my_decrypt(input_path: str, output_path: str, json_path: str, is_folder: bool):
-    with open(json_path, 'r') as json_fh:
+def my_decrypt(input_path: str):
+    with open(input_path, 'r') as json_fh:
         json_raw = json_fh.read()
         json_data = json.loads(json_raw)
-    assert 'iv' in json_data and 'rsa_cipher' in json_data and 'ext' in json_data
+    # assert 'iv' in json_data and 'rsa_cipher' in json_data and 'ext' in json_data
     data = {
-        'iv': str_to_bytes(json_data['iv']),
-        'rsa_cipher': str_to_bytes(json_data['rsa_cipher']),
+        'iv': str_to_bytes(json_data['IV']),
+        'rsa_cipher': str_to_bytes(json_data['RSACipher']),
         'ext': json_data['ext'],
-        'tag': str_to_bytes(json_data['tag'])
+        'tag': str_to_bytes(json_data['tag']),
+        'C': str_to_bytes(json_data['C'])
     }
     plaintext = my_rsa_decrypt(
         data['rsa_cipher'],
-        input_path,
+        data['C'],
         data['iv'],
         data['ext'],
         data['tag'],
         RSA_PRIVATEKEY_FILEPATH)
-    with open('{}{}'.format(output_path, data['ext']), 'wb') as output_fh:
+    name, _ = os.path.splitext(input_path)
+    output_path = '{}{}'.format(name, data['ext'])
+    with open(output_path, 'wb') as output_fh:
         output_fh.write(plaintext)

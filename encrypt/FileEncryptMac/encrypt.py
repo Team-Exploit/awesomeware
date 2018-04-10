@@ -122,16 +122,17 @@ def my_rsa_encrypt(filepath, rsa_pubkey_filepath: str) -> tuple:
     rsa_cipher = rsa_publickey_encrypt(enc_key + hmac_key, rsa_pubkey_filepath)
     return rsa_cipher, ciphertext, iv, tag, ext
 
-def my_encrypt(input_path: str, output_path: str, json_path: str, is_folder: bool) -> None:
+def my_encrypt(input_path: str) -> None:
+    name, _ = os.path.splitext(os.path.basename(input_path))
+    json_path = os.path.join(os.path.split(input_path)[0], "{}.json".format(name))
     pubkey_path = manage_key(RSA_PUBLICKEY_FILEPATH)
     rsa_cipher, ciphertext, iv, tag, ext = my_rsa_encrypt(input_path, pubkey_path)
     data = {
-        'iv':  bytes_to_str(iv),
-        'rsa_cipher': bytes_to_str(rsa_cipher),
+        'C': bytes_to_str(ciphertext),
+        'IV':  bytes_to_str(iv),
+        'RSACipher': bytes_to_str(rsa_cipher),
         'tag': bytes_to_str(tag),
         'ext': ext
     }
-    with open(output_path, 'wb') as output_fh:
-        output_fh.write(ciphertext)
     with open(json_path, 'w') as json_fh:
         json.dump(data, json_fh)
