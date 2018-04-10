@@ -269,3 +269,5 @@ encrypt/data/
 encrypt/*.json
 encrypt/output*
 .vscode/
+rsa/pubkey.pem
+rsa/privkey.pem
