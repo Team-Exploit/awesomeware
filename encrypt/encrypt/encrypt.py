@@ -8,6 +8,8 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding, serialization, asymmetric, hashes, hmac
 from cryptography.hazmat.primitives.asymmetric import padding as rsa_padding
 
+from rsa_key import manage_key
+
 BLOCK_SIZE = 16 #bytes
 IV_SIZE = BLOCK_SIZE
 KEY_SIZE = BLOCK_SIZE * 2
@@ -64,7 +66,7 @@ def my_file_encrypt(filepath: str) -> tuple:
     ciphertext, iv = my_aes_encrypt(data, key)
     return ciphertext, iv, key, ext
 
-def rsa_publickey_encrypt(message: bytes, rsa_pubkey_filepath: str = RSA_PUBLICKEY_FILEPATH) -> bytes:
+def rsa_publickey_encrypt(message: bytes, rsa_pubkey_filepath: str) -> bytes:
     with open(rsa_pubkey_filepath, 'rb') as pem_file:
         public_key = serialization.load_pem_public_key(
             pem_file.read(),
@@ -115,13 +117,14 @@ def my_file_encrypt_mac(filepath: str) -> tuple:
 #     rsa_cipher = rsa_publickey_encrypt(key)
 #     return (rsa_cipher, ciphertext, iv, ext)
 
-def my_rsa_encrypt(filepath, rsa_pubkey_filepath: str = RSA_PUBLICKEY_FILEPATH) -> tuple:
+def my_rsa_encrypt(filepath, rsa_pubkey_filepath: str) -> tuple:
     ciphertext, iv, tag, enc_key, hmac_key, ext = my_file_encrypt_mac(filepath)
     rsa_cipher = rsa_publickey_encrypt(enc_key + hmac_key, rsa_pubkey_filepath)
     return rsa_cipher, ciphertext, iv, tag, ext
 
 def my_encrypt(input_path: str, output_path: str, json_path: str, is_folder: bool) -> None:
-    rsa_cipher, ciphertext, iv, tag, ext = my_rsa_encrypt(input_path)
+    pubkey_path = manage_key(RSA_PUBLICKEY_FILEPATH)
+    rsa_cipher, ciphertext, iv, tag, ext = my_rsa_encrypt(input_path, pubkey_path)
     data = {
         'iv':  bytes_to_str(iv),
         'rsa_cipher': bytes_to_str(rsa_cipher),

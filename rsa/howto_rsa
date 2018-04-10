@@ -2,7 +2,7 @@
 ## containing a private key and a public certificate
 ## The lenght should not the inferior to 2048
 
-openssl genrsa -out mykey.pem 4096
+openssl genrsa -out privkey.pem 2048
 
 ## The following command will extract the public key
 

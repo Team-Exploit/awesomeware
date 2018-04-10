@@ -12,7 +12,7 @@ BLOCK_SIZE = 16
 IV_SIZE = BLOCK_SIZE
 KEY_SIZE = BLOCK_SIZE * 2
 
-RSA_PRIVATEKEY_FILEPATH = "../rsa/mykey.pem"
+RSA_PRIVATEKEY_FILEPATH = "../rsa/privkey.pem"
 
 def to_bits(byte_size: int) -> int:
     return byte_size * 8
