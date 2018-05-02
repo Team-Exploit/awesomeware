@@ -271,3 +271,5 @@ encrypt/output*
 .vscode/
 rsa/pubkey.pem
 rsa/privkey.pem
+server/flask
+server/.vscode
