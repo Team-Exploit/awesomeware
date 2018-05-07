@@ -273,3 +273,4 @@ rsa/pubkey.pem
 rsa/privkey.pem
 server/flask
 server/.vscode
+server/*.pem

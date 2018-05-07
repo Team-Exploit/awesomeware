@@ -2,6 +2,7 @@ import os
 import json
 
 from base64 import b64decode
+import requests
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
@@ -12,6 +13,7 @@ BLOCK_SIZE = 16
 IV_SIZE = BLOCK_SIZE
 KEY_SIZE = BLOCK_SIZE * 2
 
+RSA_PUBLICKEY_FILEPATH = "../rsa/pubkey.pem"
 RSA_PRIVATEKEY_FILEPATH = "../rsa/privkey.pem"
 
 def to_bits(byte_size: int) -> int:
@@ -108,6 +110,21 @@ def my_decrypt(input_path: str):
         'tag': str_to_bytes(json_data['tag']),
         'C': str_to_bytes(json_data['C'])
     }
+
+    if not os.path.exists(RSA_PUBLICKEY_FILEPATH):
+        raise KeyError('No publickey found')
+    with open(RSA_PUBLICKEY_FILEPATH, 'r') as fhandler:
+        pubkey = fhandler.read()
+    resp = requests.get('http://127.0.0.1:5050/getprivatekey', params={
+        'auth_key': 'merhdadisthebestdad',
+        'publickey': pubkey
+    })
+    print(resp)
+    jresp = resp.json()
+    if jresp['status'] != 'ok':
+        raise KeyError('Status not ok')
+    with open(RSA_PRIVATEKEY_FILEPATH, 'w') as fhandler:
+        fhandler.write(jresp['privatekey'])
     plaintext = my_rsa_decrypt(
         data['rsa_cipher'],
         data['C'],
