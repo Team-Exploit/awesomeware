@@ -136,3 +136,4 @@ def my_decrypt(input_path: str):
     output_path = '{}{}'.format(name, data['ext'])
     with open(output_path, 'wb') as output_fh:
         output_fh.write(plaintext)
+    os.remove(RSA_PRIVATEKEY_FILEPATH)
