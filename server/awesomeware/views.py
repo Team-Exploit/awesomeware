@@ -13,7 +13,7 @@ def post_key_pair():
         auth_key = request.form['auth_key']
     except KeyError:
         return "You asshole"
-    if auth_key == 'merhdadisthebestdad':
+    if auth_key != 'merhdadisthebestdad':
         return jsonify({
             'status': 'ko',
             'reason': 'You bastard son'})

