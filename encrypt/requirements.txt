@@ -6,5 +6,5 @@ pip==9.0.1
 pyasn1==0.4.2
 pycparser==2.18
 rsa==3.4.2
-setuptools==28.8.0
+setuptools==65.5.1
 six==1.11.0
